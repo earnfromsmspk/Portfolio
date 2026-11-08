@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" data-t="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EarnFromSMS</title>
+<style>
+:root{--bg:#050a14;--bg2:#0a1830;--card:#0d1d38;--line:#1c3358;--txt:#e9f1ff;--mut:#8ca3c4;--g:#22c55e;--gd:#0f7a37;--err:#ef4444;--r:12px}
+[data-t=light]{--bg:#f2f6fb;--bg2:#e3ecf8;--card:#fff;--line:#cdd9ea;--txt:#0a1730;--mut:#51668a;--gd:#15803d}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:linear-gradient(160deg,var(--bg),var(--bg2));color:var(--txt);min-height:100vh}
+a{color:var(--g)}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.2rem;color:var(--txt);text-decoration:none}
+nav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+nav a,nav button{color:var(--txt);text-decoration:none;padding:7px 11px;border-radius:8px;font-size:.92rem;background:none;border:0;cursor:pointer}
+nav a:hover,nav button:hover{background:var(--card)}
+main{max-width:1000px;margin:0 auto;padding:22px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.stat b{display:block;font-size:1.6rem;color:var(--g)}
+.stat span,.mut{color:var(--mut);font-size:.9rem}
+h1{font-size:clamp(2rem,6vw,3.2rem);line-height:1.1;margin:.2em 0}
+h2{margin-top:0}
+label{display:block;margin:12px 0 4px;font-size:.9rem;color:var(--mut)}
+input,select,textarea{width:100%;padding:11px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font:inherit}
+input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:1px}
+.btn{display:inline-block;background:var(--g);color:#04150a;border:0;font-weight:700;padding:11px 18px;border-radius:9px;cursor:pointer;text-decoration:none;margin-top:12px;font-size:1rem}
+.btn.alt{background:transparent;color:var(--txt);border:1px solid var(--line)}
+.btn.bad{background:var(--err);color:#fff}
+.btn.sm{padding:6px 10px;font-size:.85rem;margin:2px}
+.form{max-width:440px;margin:0 auto}
+.tag{padding:2px 9px;border-radius:99px;font-size:.8rem;font-weight:700;background:var(--line)}
+.tag.approved,.tag.active{background:var(--gd);color:#fff}.tag.rejected,.tag.suspended{background:var(--err);color:#fff}.tag.pending{background:#b45309;color:#fff}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.88rem}
+td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.bin{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:1.3rem;font-weight:800;color:var(--g)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--card);border:1px solid var(--g);padding:11px 18px;border-radius:10px;display:none;z-index:9;max-width:90vw}
+#toast.e{border-color:var(--err)}
+.ok{border-color:var(--g);background:rgba(34,197,94,.08)}.warn{border-color:#b45309}
+.hero{padding:30px 0 10px}
+@media (prefers-reduced-motion:no-preference){.hero h1{animation:in .6s ease-out both}@keyframes in{from{opacity:0;transform:translateY(10px)}}}
+</style>
+</head>
+<body>
+<header><a class="logo" href="#/"><svg width="34" height="34" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#0a1830"/><path d="M9 11h22a3 3 0 013 3v10a3 3 0 01-3 3H20l-7 6v-6H9a3 3 0 01-3-3V14a3 3 0 013-3z" fill="#22c55e"/><path d="M13 19l4 4 9-8" stroke="#050a14" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>EarnFromSMS</a><nav id="nav"></nav></header>
+<main id="app"></main>
+<div id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
+<script>
+/* ====== 1. CONFIG: paste your Supabase values (Project Settings > API). The anon key is safe to be public. ====== */
+const SUPABASE_URL='YOUR_SUPABASE_URL', SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
+const PAY={id:'1079252790',name:'ASIFA SALEEM'}, TG_SUPPORT='https://t.me/TAYYAB_CODER', MAIL='asifasaleem21@gmail.com';
+
+let sb=null, CFG_ERR='';
+try{
+  if(typeof supabase==='undefined')throw new Error('The Supabase library could not load. Check your internet connection or try another network.');
+  if(!/^https:\/\/.+\.supabase\.co/.test(SUPABASE_URL)||SUPABASE_KEY.startsWith('YOUR_'))throw new Error('Supabase is not configured yet. Open index.html and paste your Project URL and anon key at the top of the script (Supabase > Project Settings > API).');
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+}catch(e){CFG_ERR=e.message}
+const $=s=>document.querySelector(s), app=$('#app');
+addEventListener('error',e=>{try{toast('Script error: '+e.message,1)}catch(_){}});
+addEventListener('unhandledrejection',e=>{try{toast('Error: '+(e.reason?.message||e.reason),1)}catch(_){}});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fd=d=>d?new Date(d).toLocaleString():'-';
+const tag=s=>`<span class="tag ${esc(s)}">${esc(s)}</span>`;
+let me=null, prof=null, adm=null, tab='payments';
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'e':'';t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',4500)}
+const route=()=>((location.hash.slice(1)||location.pathname).replace(/\/+$/,'').replace(/\/index\.html$/,''))||'/';
+const theme=localStorage.getItem('t');if(theme)document.documentElement.dataset.t=theme;
+
+async function load(){
+  me=null;prof=null;adm=null;if(!sb)return;
+  const{data:{session}}=await sb.auth.getSession();me=session?.user||null;
+  if(me){
+    prof=(await sb.from('profiles').select('*').eq('id',me.id).maybeSingle()).data;
+    adm=(await sb.from('admins').select('role').eq('id',me.id).maybeSingle()).data;
+  }
+}
+function navHtml(){
+  let h='<a href="#/">Home</a>';
+  if(me&&prof)h+='<a href="#/dashboard">Dashboard</a><a href="#/deposit">Deposit</a><a href="#/history">History</a>';
+  h+='<a href="#/support">Support</a>';
+  if(adm)h+='<a href="#/owner-dashboard">Owner</a>';
+  h+=me?'<button data-a="logout">Log out</button>':'<a href="#/login">Log in</a><a class="btn sm" href="#/register" style="margin:0">Register</a>';
+  return h+'<button data-a="theme" aria-label="Toggle light or dark mode">◐</button>';
+}
+const R={};
+async function render(){
+  await load();$('#nav').innerHTML=navHtml();
+  const r=route(), f=R[r]||R['/'];
+  if(!sb&&!['/','/terms','/privacy'].includes(r)){app.innerHTML=`<div class="card warn"><h2>Setup needed</h2><p>${esc(CFG_ERR)}</p></div>`;return}
+  try{await f()}catch(e){app.innerHTML=`<div class="card warn"><h2>Something went wrong</h2><p>${esc(e.message)}</p><p class="mut">If this says a table or function does not exist, run setup.sql in Supabase.</p></div>`}
+  if(!sb&&r==='/')app.insertAdjacentHTML('afterbegin',`<div class="card warn">${esc(CFG_ERR)}</div>`);
+  scrollTo(0,0);
+}
+addEventListener('hashchange',render);
+if(sb)sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY')R.recover()});
+
+/* ====== Public pages ====== */
+R['/']=()=>{app.innerHTML=`<div class="hero"><h1>Verified access to the EarnFromSMS Telegram bot.</h1>
+<p class="mut" style="max-width:560px">Register, make a 1 USDT activation deposit, and get approved by our team. Once your payment is verified, the Telegram bot link unlocks on your dashboard.</p>
+<a class="btn" href="#/register">Create account</a> <a class="btn alt" href="#/login">Log in</a></div>
+<div class="grid" style="margin-top:28px">
+<div class="card"><h2>Register</h2><p class="mut">Verify your email and set up your profile.</p></div>
+<div class="card"><h2>Deposit 1 USDT</h2><p class="mut">Pay through Binance and submit your transaction ID and screenshot.</p></div>
+<div class="card"><h2>Get approved</h2><p class="mut">An owner checks the real Binance transaction within 24 hours. Screenshots alone never activate an account.</p></div>
+<div class="card"><h2>Start the bot</h2><p class="mut">Activated accounts see the Telegram button on the dashboard.</p></div></div>
+<p class="mut">Earnings are not guaranteed. The 1 USDT is an activation deposit. Read the <a href="#/terms">Terms</a>.</p>`};
+
+R['/terms']=()=>{app.innerHTML=`<div class="card"><h2>Terms &amp; Conditions</h2>
+<p>1. EarnFromSMS requires a minimum 1 USDT activation deposit. Accounts are activated only after an authorized admin verifies the real Binance transaction.</p>
+<p>2. Earnings are not guaranteed and depend on the availability of tasks.</p>
+<p>3. Use only lawful, consent-based SMS verification services. Never submit OTPs or codes belonging to accounts you do not own or have permission to use, and never submit banking OTPs.</p>
+<p>4. Fake, duplicated or edited payment proofs lead to rejection and suspension.</p>
+<p>5. We may suspend accounts that break these terms. Contact support for disputes.</p>
+<p class="mut">Replace this text with terms reviewed for your country.</p></div>`};
+R['/privacy']=()=>{app.innerHTML=`<div class="card"><h2>Privacy Policy</h2>
+<p>We store your name, username, email, payment transaction ID and payment screenshot to run your account and verify payments. Passwords are hashed and never visible to us. Screenshots are private and visible only to you and authorized admins.</p>
+<p>We never ask for your password or private OTPs. Contact ${esc(MAIL)} to request account deletion.</p>
+<p class="mut">Replace this text with a policy reviewed for your country.</p></div>`};
+
+R['/support']=async()=>{
+  app.innerHTML=`<div class="card"><h2>Help &amp; Support</h2>
+<p>If you experience any problems with your account, payment, or earning service, please contact our support team.</p>
+<div class="card warn">If your payment is not approved, please wait up to 24 hours. If the issue continues, contact the owner through Telegram or email.</div>
+<a class="btn" href="${TG_SUPPORT}" target="_blank" rel="noopener">CONTACT SUPPORT ON TELEGRAM</a>
+<p>Email: <a href="mailto:${MAIL}">${MAIL}</a></p>
+<p class="mut">Please include your username, registered email, transaction ID, contact number and a detailed explanation. Never share your password or private OTPs.</p></div>
+${me?`<form class="card" id="tf"><h2>Send a support request</h2>
+<label>Username</label><input id="tu" value="${esc(prof?.username)}" required>
+<label>Registered email</label><input id="te" type="email" value="${esc(me.email)}" required>
+<label>Transaction ID</label><input id="tx">
+<label>Contact number</label><input id="tc" required>
+<label>Explain your problem</label><textarea id="tm" rows="5" minlength="10" maxlength="3000" required></textarea>
+<button class="btn">Send request</button><p class="mut">Our team will review your issue and contact you to resolve it.</p></form>`:'<p class="mut"><a href="#/login">Log in</a> to send a request from the site.</p>'}`;
+  const f=$('#tf');if(f)f.onsubmit=async e=>{e.preventDefault();
+    const{error}=await sb.from('support_tickets').insert({user_id:me.id,username:$('#tu').value,email:$('#te').value,txid:$('#tx').value,contact:$('#tc').value,message:$('#tm').value});
+    if(error)return toast(error.message,1);toast('Request sent. Our team will contact you.');f.reset()};
+};
+
+/* ====== Auth ====== */
+R['/register']=()=>{app.innerHTML=`<form class="card form" id="f"><h2>Create your account</h2>
+<label>Full name</label><input id="fn" required maxlength="80">
+<label>Username (3-20: letters, numbers, _)</label><input id="un" required pattern="[A-Za-z0-9_]{3,20}">
+<label>Email</label><input id="em" type="email" required>
+<label>Password (min 8)</label><input id="pw" type="password" minlength="8" required>
+<label>Confirm password</label><input id="pc" type="password" minlength="8" required>
+<button class="btn">Register</button><p class="mut">Already registered? <a href="#/login">Log in</a></p></form>`;
+  $('#f').onsubmit=async e=>{e.preventDefault();
+    if($('#pw').value!==$('#pc').value)return toast('Passwords do not match',1);
+    const u=$('#un').value.toLowerCase();
+    const{data:ok}=await sb.rpc('username_available',{u});if(!ok)return toast('That username is taken',1);
+    const{error}=await sb.auth.signUp({email:$('#em').value.trim(),password:$('#pw').value,options:{data:{username:u,full_name:$('#fn').value.trim()},emailRedirectTo:location.href.split('#')[0]}});
+    if(error)return toast(error.message,1);
+    app.innerHTML='<div class="card ok"><h2>Check your email</h2><p>We sent a verification link. Open it, then log in.</p></div>'};
+};
+R['/login']=()=>{app.innerHTML=`<form class="card form" id="f"><h2>Log in</h2>
+<label>Email</label><input id="em" type="email" required><label>Password</label><input id="pw" type="password" required>
+<button class="btn">Log in</button> <button type="button" class="btn alt" data-a="forgot">Forgot password</button></form>`;
+  $('#f').onsubmit=async e=>{e.preventDefault();
+    const{error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
+    if(error)return toast(error.message,1);location.hash='#/dashboard';render()};
+};
+R.recover=()=>{app.innerHTML=`<form class="card form" id="f"><h2>Set a new password</h2><label>New password</label><input id="pw" type="password" minlength="8" required><button class="btn">Save password</button></form>`;
+  $('#f').onsubmit=async e=>{e.preventDefault();const{error}=await sb.auth.updateUser({password:$('#pw').value});
+    if(error)return toast(error.message,1);toast('Password updated');location.hash='#/dashboard';render()}};
+
+/* ====== Customer ====== */
+const need=()=>{if(!me||!prof){location.hash='#/login';return false}return true};
+R['/dashboard']=async()=>{
+  if(!need())return;
+  const[p,e,n]=await Promise.all([
+    sb.from('payments').select('*').order('created_at',{ascending:false}).limit(1),
+    sb.from('earnings').select('*').order('created_at',{ascending:false}),
+    sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(10)]);
+  const total=(e.data||[]).reduce((s,x)=>s+Number(x.amount),0), last=p.data?.[0], act=prof.status==='active';
+  let body;
+  if(act){
+    const{data:link}=await sb.rpc('get_bot_link');
+    body=`<div class="card ok"><h2>Congratulations!</h2><p>Your account has been successfully activated. You can now access our Telegram earning bot.</p>
+${link?`<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">START EARNING NOW</a>`:'<p class="mut">Bot link unavailable. Contact support.</p>'}</div>`;
+  }else if(prof.status==='suspended'){body='<div class="card warn"><h2>Account suspended</h2><p>Please contact support.</p></div>'}
+  else body=`<div class="card warn"><h2>Activate your account</h2><p>Payment status: ${last?tag(last.status):'<span class="tag">no payment yet</span>'}</p>
+${last?.status==='rejected'?`<p>Rejected: ${esc(last.reject_reason)}</p>`:''}
+<p class="mut">Send a minimum of 1 USDT through Binance and submit your transaction ID. The Telegram bot link stays hidden until an admin approves your payment.</p>
+${last?.status==='pending'?'':'<a class="btn" href="#/deposit">Go to deposit page</a>'}</div>`;
+  app.innerHTML=`<h2>Welcome, ${esc(prof.full_name)}</h2>
+<div class="grid"><div class="card stat"><span>Username</span><b style="font-size:1.2rem">@${esc(prof.username)}</b></div>
+<div class="card stat"><span>Account status</span><b style="font-size:1.2rem">${tag(prof.status)}</b></div>
+<div class="card stat"><span>Available balance</span><b>${Number(prof.balance).toFixed(2)} USDT</b></div>
+<div class="card stat"><span>Total earnings</span><b>${total.toFixed(2)} USDT</b></div>
+<div class="card stat"><span>Completed tasks</span><b>${(e.data||[]).length}</b></div></div>
+${body}
+<div class="card"><h2>Notifications</h2>${(n.data||[]).map(x=>`<p><b>${esc(x.title)}</b> <span class="mut">${fd(x.created_at)}</span><br>${esc(x.body)}</p>`).join('')||'<p class="mut">No notifications yet.</p>'}</div>
+<div class="card"><h2>Earnings history</h2>${(e.data||[]).length?`<div class="tw"><table><tr><th>Date</th><th>Amount</th><th>Note</th></tr>${e.data.map(x=>`<tr><td>${fd(x.created_at)}</td><td>${x.amount}</td><td>${esc(x.note)}</td></tr>`).join('')}</table></div>`:'<p class="mut">No earnings recorded yet.</p>'}</div>`;
+};
+R['/deposit']=async()=>{
+  if(!need())return;
+  if(prof.status==='active'){app.innerHTML='<div class="card ok"><h2>Already activated</h2><p>Your account is active. <a href="#/dashboard">Open dashboard</a></p></div>';return}
+  const{data:pend}=await sb.from('payments').select('id').eq('status','pending').limit(1);
+  const info=`<div class="card"><h2>Binance deposit</h2>
+<p class="mut">Binance ID</p><div class="bin"><span id="bid">${PAY.id}</span><button class="btn sm alt" data-a="copy">Copy Binance ID</button></div>
+<p class="mut">Account holder name</p><p><b>${PAY.name}</b></p>
+<p><b>Minimum deposit: 1 USDT</b></p>
+<ol class="mut"><li>Open Binance and choose Pay / Send to Binance ID.</li><li>Send at least 1 USDT to the ID above.</li><li>Copy the Order / Transaction ID and take a screenshot.</li><li>Submit both below. Our team verifies the real transaction.</li></ol></div>`;
+  if(pend?.length){app.innerHTML=info+'<div class="card ok">Your payment has been submitted successfully. Our team will verify your payment within 24 hours.</div>';return}
+  app.innerHTML=info+`<form class="card" id="f"><h2>Submit payment</h2>
+<label>Amount sent (USDT)</label><input id="am" type="number" min="1" step="0.01" value="1" required>
+<label>Binance transaction ID</label><input id="tx" required minlength="6" maxlength="100">
+<label>Payment screenshot (PNG/JPG/WEBP, max 2 MB)</label><input id="ss" type="file" accept="image/png,image/jpeg,image/webp" required>
+<button class="btn">Submit Payment</button></form>`;
+  $('#f').onsubmit=async e=>{e.preventDefault();
+    const f=$('#ss').files[0], ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[f?.type];
+    if(!ext)return toast('Upload a PNG, JPG or WEBP image',1);
+    if(f.size>2*1024*1024)return toast('Image must be under 2 MB',1);
+    const path=`${me.id}/${Date.now()}.${ext}`;
+    const up=await sb.storage.from('screenshots').upload(path,f,{contentType:f.type});
+    if(up.error)return toast(up.error.message,1);
+    const{error}=await sb.from('payments').insert({user_id:me.id,amount:parseFloat($('#am').value),txid:$('#tx').value.trim(),screenshot_path:path});
+    if(error)return toast(error.code==='23505'?'This transaction ID or a pending payment already exists':error.message,1);
+    R['/deposit']()};
+};
+R['/history']=async()=>{
+  if(!need())return;
+  const{data}=await sb.from('payments').select('*').order('created_at',{ascending:false});
+  app.innerHTML=`<div class="card"><h2>Payment history</h2>${data?.length?`<div class="tw"><table><tr><th>Date</th><th>Amount</th><th>Transaction ID</th><th>Status</th><th>Note</th></tr>${data.map(x=>`<tr><td>${fd(x.created_at)}</td><td>${x.amount} USDT</td><td>${esc(x.txid)}</td><td>${tag(x.status)}</td><td>${esc(x.reject_reason)}</td></tr>`).join('')}</table></div>`:'<p class="mut">No payments yet.</p>'}</div>`;
+};
+
+/* ====== Owner ====== */
+R['/owner-login']=()=>{app.innerHTML=`<form class="card form" id="f"><h2>Owner login</h2><p class="mut">Authorized team members only.</p>
+<label>Email</label><input id="em" type="email" required><label>Password</label><input id="pw" type="password" required>
+<div id="mfa"></div><button class="btn">Log in</button></form>`;
+  $('#f').onsubmit=async e=>{e.preventDefault();
+    const{error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
+    if(error)return toast(error.message,1);
+    const{data:a}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(a.nextLevel==='aal2'&&a.currentLevel!=='aal2'){
+      if(!$('#code')){$('#mfa').innerHTML='<label>2FA code from your authenticator app</label><input id="code" inputmode="numeric" maxlength="6" required>';return toast('Enter your 2FA code')}
+      const fs=(await sb.auth.mfa.listFactors()).data.totp[0];
+      const ch=await sb.auth.mfa.challenge({factorId:fs.id});
+      const v=await sb.auth.mfa.verify({factorId:fs.id,challengeId:ch.data.id,code:$('#code').value});
+      if(v.error)return toast('Wrong 2FA code',1);
+    }
+    const{data:ad}=await sb.from('admins').select('id').eq('id',(await sb.auth.getUser()).data.user.id).maybeSingle();
+    if(!ad){await sb.auth.signOut();return toast('This account is not authorized',1)}
+    await sb.rpc('log_login');location.hash='#/owner-dashboard';render()};
+};
+R['/owner-dashboard']=async()=>{
+  if(!adm){location.hash='#/owner-login';return}
+  const{data:s}=await sb.rpc('admin_stats');
+  const tabs=['payments','customers','support','logs','security'];
+  app.innerHTML=`<h2>Owner dashboard <span class="tag">${esc(adm.role)}</span></h2>
+<div class="grid">${[['Registered customers',s.customers],['Active customers',s.active],['Pending payments',s.pending],['Approved payments',s.approved],['Rejected payments',s.rejected],['Verified deposits',Number(s.verified_total).toFixed(2)+' USDT']].map(x=>`<div class="card stat"><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join('')}</div>
+<div class="tabs">${tabs.map(t=>`<button class="btn sm ${t===tab?'':'alt'}" data-a="tab" data-v="${t}">${t}</button>`).join('')}</div><div id="pane"></div>`;
+  const P=$('#pane');
+  if(tab==='payments'){
+    const{data}=await sb.from('payments').select('*,profiles(username,full_name,email)').order('created_at',{ascending:false}).limit(300);
+    P.innerHTML=`<div class="card"><div class="grid"><input id="q" placeholder="Search username, email, transaction ID"><select id="st"><option value="">All statuses</option><option>pending</option><option>approved</option><option>rejected</option></select><input id="d1" type="date" aria-label="From"><input id="d2" type="date" aria-label="To"></div></div><div class="card tw" id="tb"></div>`;
+    const draw=()=>{const q=$('#q').value.toLowerCase(),st=$('#st').value,a=$('#d1').value,b=$('#d2').value;
+      const rows=data.filter(x=>(!st||x.status===st)&&(!a||x.created_at.slice(0,10)>=a)&&(!b||x.created_at.slice(0,10)<=b)&&(!q||[x.profiles?.username,x.profiles?.email,x.txid].join(' ').toLowerCase().includes(q)));
+      $('#tb').innerHTML=rows.length?`<table><tr><th>Customer</th><th>Amount</th><th>Binance TX ID</th><th>Date</th><th>Status</th><th>Actions</th></tr>${rows.map(x=>`<tr><td>@${esc(x.profiles?.username)}<br>${esc(x.profiles?.full_name)}<br><span class="mut">${esc(x.profiles?.email)}</span></td><td>${x.amount} USDT</td><td>${esc(x.txid)}</td><td>${fd(x.created_at)}</td><td>${tag(x.status)}${x.reject_reason?'<br>'+esc(x.reject_reason):''}</td><td><button class="btn sm alt" data-a="view" data-v="${esc(x.screenshot_path)}">Screenshot</button>${x.status==='pending'?`<button class="btn sm" data-a="approve" data-v="${x.id}">APPROVE PAYMENT</button><button class="btn sm bad" data-a="reject" data-v="${x.id}">REJECT PAYMENT</button>`:''}</td></tr>`).join('')}</table>`:'<p class="mut">No payments match.</p>'};
+    ['q','st','d1','d2'].forEach(i=>$('#'+i).oninput=draw);draw();
+  }else if(tab==='customers'){
+    const{data}=await sb.from('profiles').select('*').order('created_at',{ascending:false}).limit(300);
+    P.innerHTML=`<div class="card"><input id="q" placeholder="Search customers"></div><div class="card tw" id="tb"></div>`;
+    const draw=()=>{const q=$('#q').value.toLowerCase();$('#tb').innerHTML=`<table><tr><th>User</th><th>Email</th><th>Joined</th><th>Status</th><th>Manage</th></tr>${data.filter(x=>!q||(x.username+x.email+x.full_name).toLowerCase().includes(q)).map(x=>`<tr><td>@${esc(x.username)}<br>${esc(x.full_name)}</td><td>${esc(x.email)}</td><td>${fd(x.created_at)}</td><td>${tag(x.status)}</td><td>${x.status==='suspended'?`<button class="btn sm" data-a="ustat" data-v="${x.id}|inactive">Unsuspend</button>`:`<button class="btn sm bad" data-a="ustat" data-v="${x.id}|suspended">Suspend</button>`}</td></tr>`).join('')}</table>`};
+    $('#q').oninput=draw;draw();
+  }else if(tab==='support'){
+    const{data}=await sb.from('support_tickets').select('*').order('created_at',{ascending:false}).limit(100);
+    P.innerHTML=`<div class="card tw">${data?.length?`<table><tr><th>Date</th><th>User</th><th>Contact</th><th>TX ID</th><th>Message</th></tr>${data.map(x=>`<tr><td>${fd(x.created_at)}</td><td>@${esc(x.username)}<br>${esc(x.email)}</td><td>${esc(x.contact)}</td><td>${esc(x.txid)}</td><td>${esc(x.message)}</td></tr>`).join('')}</table>`:'<p class="mut">No support requests.</p>'}</div>`;
+  }else if(tab==='logs'){
+    const{data}=await sb.from('admin_logs').select('*').order('created_at',{ascending:false}).limit(150);
+    P.innerHTML=`<div class="card tw"><table><tr><th>When</th><th>Admin</th><th>Action</th><th>Details</th></tr>${(data||[]).map(x=>`<tr><td>${fd(x.created_at)}</td><td>${esc((x.admin_id||'').slice(0,8))}</td><td>${esc(x.action)}</td><td>${esc(x.details)}</td></tr>`).join('')}</table></div>`;
+  }else{
+    const fs=(await sb.auth.mfa.listFactors()).data?.totp||[];
+    P.innerHTML=`<div class="card"><h2>Two-factor authentication</h2>${fs.some(f=>f.status==='verified')?'<p>2FA is enabled on your account.</p>':'<button class="btn" data-a="mfa">Enable 2FA</button><div id="qr"></div>'}</div>`;
+  }
+};
+
+/* ====== Click actions ====== */
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v;
+  if(!sb&&a!=='theme'&&a!=='copy')return toast(CFG_ERR||'Supabase is not configured',1);
+  if(a==='theme'){const t=document.documentElement.dataset.t==='dark'?'light':'dark';document.documentElement.dataset.t=t;localStorage.setItem('t',t)}
+  else if(a==='logout'){await sb.auth.signOut();location.hash='#/';render()}
+  else if(a==='forgot'){const em=$('#em').value.trim();if(!em)return toast('Enter your email first',1);
+    const{error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.href.split('#')[0]});toast(error?error.message:'Password reset email sent',!!error)}
+  else if(a==='copy'){try{await navigator.clipboard.writeText(PAY.id);toast('Binance ID copied')}catch{toast('Copy failed. Select the ID manually.',1)}}
+  else if(a==='tab'){tab=v;R['/owner-dashboard']()}
+  else if(a==='view'){const{data,error}=await sb.storage.from('screenshots').createSignedUrl(v,300);error?toast(error.message,1):open(data.signedUrl,'_blank','noopener')}
+  else if(a==='approve'){if(!confirm('Did you check this exact transaction ID, amount and sender in your Binance app? Approving activates the account.'))return;
+    const{error}=await sb.rpc('approve_payment',{p_id:v,p_verified:true});error?toast(error.message,1):(toast('Payment approved'),R['/owner-dashboard']())}
+  else if(a==='reject'){const r=prompt('Reason for rejection:');if(!r)return;
+    const{error}=await sb.rpc('reject_payment',{p_id:v,p_reason:r});error?toast(error.message,1):(toast('Payment rejected'),R['/owner-dashboard']())}
+  else if(a==='ustat'){const[u,s]=v.split('|');const{error}=await sb.rpc('set_user_status',{u,s});error?toast(error.message,1):R['/owner-dashboard']()}
+  else if(a==='mfa'){const{data,error}=await sb.auth.mfa.enroll({factorType:'totp'});if(error)return toast(error.message,1);
+    $('#qr').innerHTML=`<p>Scan with Google Authenticator or Authy, then enter the 6-digit code.</p><img src="${data.totp.qr_code}" width="180" alt="2FA QR code"><input id="mc" inputmode="numeric" maxlength="6" placeholder="123456"><button class="btn" data-a="mfaok" data-v="${data.id}">Confirm</button>`}
+  else if(a==='mfaok'){const ch=await sb.auth.mfa.challenge({factorId:v});const r=await sb.auth.mfa.verify({factorId:v,challengeId:ch.data.id,code:$('#mc').value});
+    r.error?toast('Wrong code',1):(toast('2FA enabled'),R['/owner-dashboard']())}
+});
+render();
+</script>
+</body>
+</html>
